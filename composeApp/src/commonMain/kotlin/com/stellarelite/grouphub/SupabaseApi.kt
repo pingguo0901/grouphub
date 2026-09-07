@@ -24,7 +24,7 @@ object SupabaseApi {
             val resp = client.post("${Config.SUPABASE_URL}/auth/v1/token?grant_type=password") {
                 header("apikey", Config.SUPABASE_ANON_KEY)
                 contentType(ContentType.Application.Json)
-                setBody("""{"email":"$email","password":"***"}""")
+                setBody("""{"email":"$email","password":"$password"}""")
             }
             val body: AuthResponse = resp.body()
             if (body.accessToken != null) Result.success(body.accessToken)
