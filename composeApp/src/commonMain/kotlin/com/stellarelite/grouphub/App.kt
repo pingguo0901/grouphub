@@ -141,8 +141,15 @@ fun LoginScreen(onLoggedIn: (String) -> Unit) {
 @Composable
 fun MainScaffold(token: String) {
     var current by remember { mutableStateOf(0) }
+    var sub by remember { mutableStateOf<String?>(null) }
+
+    if (sub != null) {
+        SubScreen(sub!!, token, onBack = { sub = null })
+        return
+    }
+
     val tabs = listOf(
-        TabItem("首页", Icons.Filled.Dashboard) { DashboardScreen(token) },
+        TabItem("首页", Icons.Filled.Dashboard) { DashboardScreen(token, onNavigate = { sub = it }) },
         TabItem("炙巷财务", Icons.Filled.Restaurant) { ZhixiangFinanceScreen(token) },
         TabItem("星域财务", Icons.Filled.Flight) { XyzlFinanceScreen(token) },
         TabItem("薪资", Icons.Filled.Groups) { PayrollScreen(token) },
@@ -168,11 +175,30 @@ fun MainScaffold(token: String) {
     }
 }
 
+@Composable
+fun SubScreen(name: String, token: String, onBack: () -> Unit) {
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "返回") }
+            Text(name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        }
+        when (name) {
+            "合规预警" -> ComplianceScreen(token)
+            "官方档案" -> ArchiveScreen(token)
+            "数据同步" -> SyncScreen(token)
+            "消息归集" -> MessageScreen(token)
+            "AI 助手" -> AiChatScreen(token)
+            "FB 中控" -> FbScreen(token)
+            else -> {}
+        }
+    }
+}
+
 data class TabItem(val label: String, val icon: ImageVector, val content: @Composable () -> Unit)
 
 // ============ 1. 首页总驾驶舱（接真实数据） ============
 @Composable
-fun DashboardScreen(token: String) {
+fun DashboardScreen(token: String, onNavigate: (String) -> Unit = {}) {
     var officialMode by remember { mutableStateOf(true) }
     var entities by remember { mutableStateOf<List<BusinessEntity>>(emptyList()) }
     var revenue by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
@@ -261,9 +287,15 @@ fun DashboardScreen(token: String) {
         Text("快捷入口", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            QuickEntry("合规预警", Icons.Filled.Warning, Modifier.weight(1f))
-            QuickEntry("官方档案", Icons.Filled.Folder, Modifier.weight(1f))
-            QuickEntry("数据同步", Icons.Filled.Sync, Modifier.weight(1f))
+            QuickEntry("合规预警", Icons.Filled.Warning, Modifier.weight(1f)) { onNavigate("合规预警") }
+            QuickEntry("官方档案", Icons.Filled.Folder, Modifier.weight(1f)) { onNavigate("官方档案") }
+            QuickEntry("数据同步", Icons.Filled.Sync, Modifier.weight(1f)) { onNavigate("数据同步") }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            QuickEntry("消息归集", Icons.Filled.Email, Modifier.weight(1f)) { onNavigate("消息归集") }
+            QuickEntry("AI 助手", Icons.Filled.SmartToy, Modifier.weight(1f)) { onNavigate("AI 助手") }
+            QuickEntry("FB 中控", Icons.Filled.ThumbUp, Modifier.weight(1f)) { onNavigate("FB 中控") }
         }
     }
 
@@ -293,8 +325,8 @@ fun BusinessCard(name: String, industry: String, mode: String, revenue: Double, 
 }
 
 @Composable
-fun QuickEntry(label: String, icon: ImageVector, modifier: Modifier = Modifier) {
-    Card(modifier.clickable { }) {
+fun QuickEntry(label: String, icon: ImageVector, modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
+    Card(modifier.clickable(onClick = onClick)) {
         Column(Modifier.fillMaxWidth().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(icon, contentDescription = label)
             Spacer(Modifier.height(4.dp))

@@ -1,8 +1,8 @@
 {
-  "versionCode": 7,
-  "versionName": "1.0.6",
-  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.0.6/grouphub.apk",
-  "changelog": "补齐原生授权权限（通知/存储/相机/录音/定位/联系人）+ 运行时通知权限请求",
+  "versionCode": 8,
+  "versionName": "1.1.0",
+  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.1.0/grouphub.apk",
+  "changelog": "第二期 V1.1：消息归集中心 + AI 经营助手（DeepSeek）+ Facebook 营销中控",
   "buildDate": "2026-09-07",
   "minSdkVersion": "Android 7.0 (SDK 24)",
   "apkSize": "17 MB"
