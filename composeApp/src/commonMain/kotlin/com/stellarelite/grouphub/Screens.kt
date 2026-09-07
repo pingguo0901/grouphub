@@ -61,28 +61,39 @@ fun ZhixiangFinanceScreen(token: String) {
 // ============ 3. 星域臻旅 财务中心（双账本专区） ============
 @Composable
 fun XyzlFinanceScreen(token: String) {
-    var official by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
-    var private by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var tab by remember { mutableStateOf(0) }
+
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
+        Text("星域臻旅 财务中心", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        TabRow(selectedTabIndex = tab) {
+            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("报税商贸账", fontSize = 13.sp) })
+            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("真实包车账", fontSize = 13.sp) })
+            Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("TG Bot 订单", fontSize = 13.sp) })
+        }
+        Spacer(Modifier.height(8.dp))
+        when (tab) {
+            0 -> XyzlCashflowTab(token, "official")
+            1 -> XyzlCashflowTab(token, "private")
+            2 -> TgOrderScreen(token)
+        }
+    }
+}
+
+@Composable
+fun XyzlCashflowTab(token: String, accountType: String) {
+    var rows by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(token) {
-        official = SupabaseApi.fetchTable(token, "cashflow_business", "?select=*&account_type=eq.official&business_industry=eq.ElectronicTrade&limit=20")
-        private = SupabaseApi.fetchTable(token, "cashflow_business", "?select=*&account_type=eq.private&business_industry=eq.ElectronicTrade&limit=20")
+    LaunchedEffect(token, accountType) {
+        rows = SupabaseApi.fetchTable(token, "cashflow_business", "?select=*&account_type=eq.$accountType&business_industry=eq.ElectronicTrade&limit=50")
         loading = false
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Text("星域臻旅 财务中心", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
+    Column(Modifier.verticalScroll(rememberScrollState())) {
         if (loading) { Text("加载中...", color = Color.Gray); return@Column }
-
-        Text("报税商贸账专区（电子零件）", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20))
-        official.take(10).forEach { r ->
-            InfoRow(SupabaseApi.str(r, "flow_type"), "RM %.2f · %s".format(SupabaseApi.dbl(r, "amount"), SupabaseApi.str(r, "category")))
-        }
-        Spacer(Modifier.height(12.dp))
-        Text("真实包车经营账专区（内部）", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF9A825))
-        private.take(10).forEach { r ->
+        if (rows.isEmpty()) { Text("暂无数据", color = Color.Gray); return@Column }
+        rows.forEach { r ->
             InfoRow(SupabaseApi.str(r, "flow_type"), "RM %.2f · %s".format(SupabaseApi.dbl(r, "amount"), SupabaseApi.str(r, "category")))
         }
     }

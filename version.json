@@ -1,8 +1,8 @@
 {
-  "versionCode": 12,
-  "versionName": "1.1.4",
-  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.1.4/grouphub.apk",
-  "changelog": "CP500 分期缴税 + HRDF 豁免 + 首页合规提醒 + 消息绑定单据 + Telegram Bot 框架",
+  "versionCode": 13,
+  "versionName": "1.2.0",
+  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.2.0/grouphub.apk",
+  "changelog": "Telegram Bot 包车订单模块（4 张 tg_* 表 + Webhook + 前端订单管理）",
   "buildDate": "2026-09-07",
   "minSdkVersion": "Android 7.0 (SDK 24)",
   "apkSize": "17 MB"
