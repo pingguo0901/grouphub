@@ -25,7 +25,22 @@ import grouphub.composeapp.generated.resources.app_icon
 
 // ============ 应用入口（登录态管理） ============
 @Composable
-fun App() {
+fun App(
+    onCheckUpdate: (suspend () -> VersionInfo?)? = null,
+    onRequestUpdate: ((VersionInfo) -> Unit)? = null,
+) {
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var updateInfo by remember { mutableStateOf<VersionInfo?>(null) }
+
+    LaunchedEffect(Unit) {
+        onCheckUpdate?.let { checkFn ->
+            checkFn()?.let {
+                updateInfo = it
+                showUpdateDialog = true
+            }
+        }
+    }
+
     MaterialTheme(colorScheme = lightColorScheme(
         primary = Color(0xFF1B5E20),
         secondary = Color(0xFFF9A825),
@@ -36,6 +51,23 @@ fun App() {
         } else {
             MainScaffold(token = token!!)
         }
+    }
+
+    if (showUpdateDialog && updateInfo != null) {
+        AlertDialog(
+            onDismissRequest = { showUpdateDialog = false },
+            title = { Text("发现新版本 v${updateInfo!!.versionName}") },
+            text = { Text(updateInfo!!.changelog.replace("- ", "• ")) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showUpdateDialog = false
+                    onRequestUpdate?.invoke(updateInfo!!)
+                }) { Text("立即更新") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUpdateDialog = false }) { Text("稍后") }
+            }
+        )
     }
 }
 
