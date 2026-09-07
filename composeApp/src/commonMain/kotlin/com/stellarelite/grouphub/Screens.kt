@@ -21,38 +21,192 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 
-// ============ 2. 炙巷食铺 财务中心 ============
+// ============ 2. 炙巷食铺 财务中心（订单管理 / 记账 / 报表统计 / 台账） ============
 @Composable
 fun ZhixiangFinanceScreen(token: String) {
+    var tab by remember { mutableStateOf(0) }
+    var entityId by remember { mutableStateOf("") }
+
+    LaunchedEffect(token) {
+        val ents = SupabaseApi.fetchEntities(token)
+        entityId = ents.firstOrNull { it.businessIndustry == "F&B" }?.id ?: ""
+    }
+
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
+        Text("炙巷食铺 财务中心", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(8.dp))
+        TabRow(selectedTabIndex = tab) {
+            listOf("订单管理", "记账", "报表统计", "台账").forEachIndexed { i, label ->
+                Tab(selected = tab == i, onClick = { tab = i }, text = { Text(label, fontSize = 13.sp) })
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        when (tab) {
+            0 -> ZhixiangOrdersTab(token, entityId)
+            1 -> ZhixiangExpenseTab(token, entityId)
+            2 -> ZhixiangReportTab(token, entityId)
+            3 -> ZhixiangLedgerTab(token, entityId)
+        }
+    }
+}
+
+@Composable
+private fun ZhixiangOrdersTab(token: String, entityId: String) {
+    var orders by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(token, entityId) {
+        if (entityId.isNotEmpty()) {
+            orders = SupabaseApi.fetchTable(token, "sales_invoice_summary",
+                "?select=*&business_entity_id=eq.$entityId&order=order_date.desc&limit=300")
+        }
+        loading = false
+    }
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        if (loading) { Text("加载中...", color = Color.Gray); return@Column }
+        if (orders.isEmpty()) { Text("暂无订单", color = Color.Gray); return@Column }
+
+        val total = orders.sumOf { SupabaseApi.dbl(it, "total_amount") }
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF1B5E20))) {
+            Column(Modifier.padding(16.dp)) {
+                Text("订单汇总", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                Text("${orders.size} 单 · RM %.2f".format(total), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        orders.forEach { r ->
+            InfoRow(
+                "${SupabaseApi.str(r, "external_order_id")} · ${SupabaseApi.str(r, "order_date")}",
+                "RM %.2f · %s · %s".format(SupabaseApi.dbl(r, "total_amount"), SupabaseApi.str(r, "customer_info"), SupabaseApi.str(r, "invoice_status"))
+            )
+        }
+    }
+}
+
+@Composable
+private fun ZhixiangExpenseTab(token: String, entityId: String) {
+    var costs by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var purchases by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(token, entityId) {
+        if (entityId.isNotEmpty()) {
+            costs = SupabaseApi.fetchTable(token, "cashflow_business",
+                "?select=*&business_entity_id=eq.$entityId&order=flow_date.desc&limit=300")
+            purchases = SupabaseApi.fetchTable(token, "purchase_invoice_summary",
+                "?select=*&business_entity_id=eq.$entityId&order=purchase_date.desc&limit=300")
+        }
+        loading = false
+    }
+
+    val expenseRows = costs.filter { SupabaseApi.str(it, "flow_type") == "成本支出" }
+    val costTotal = expenseRows.sumOf { SupabaseApi.dbl(it, "amount") }
+    val purchaseTotal = purchases.sumOf { SupabaseApi.dbl(it, "total_amount") }
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        if (loading) { Text("加载中...", color = Color.Gray); return@Column }
+        SectionTitle("业务开销（${expenseRows.size} 条 · RM %.2f）".format(costTotal))
+        if (expenseRows.isEmpty()) Text("暂无开销", color = Color.Gray)
+        expenseRows.forEach { r ->
+            InfoRow(
+                "${SupabaseApi.str(r, "category")} · ${SupabaseApi.str(r, "flow_date")}",
+                "RM %.2f".format(SupabaseApi.dbl(r, "amount"))
+            )
+        }
+        SectionTitle("进货（${purchases.size} 条 · RM %.2f）".format(purchaseTotal))
+        if (purchases.isEmpty()) Text("暂无进货", color = Color.Gray)
+        purchases.forEach { r ->
+            InfoRow(
+                "${SupabaseApi.str(r, "external_purchase_id")} · ${SupabaseApi.str(r, "purchase_date")}",
+                "RM %.2f · %s".format(SupabaseApi.dbl(r, "total_amount"), SupabaseApi.str(r, "stock_status"))
+            )
+        }
+    }
+}
+
+@Composable
+private fun ZhixiangReportTab(token: String, entityId: String) {
+    var sales by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var costs by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var purchases by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(token, entityId) {
+        if (entityId.isNotEmpty()) {
+            sales = SupabaseApi.fetchTable(token, "sales_invoice_summary",
+                "?select=*&business_entity_id=eq.$entityId&order=order_date.desc&limit=1000")
+            costs = SupabaseApi.fetchTable(token, "cashflow_business",
+                "?select=*&business_entity_id=eq.$entityId&limit=1000")
+            purchases = SupabaseApi.fetchTable(token, "purchase_invoice_summary",
+                "?select=*&business_entity_id=eq.$entityId&limit=1000")
+        }
+        loading = false
+    }
+
+    val revenue = sales.sumOf { SupabaseApi.dbl(it, "total_amount") }
+    val cost = costs.filter { SupabaseApi.str(it, "flow_type") == "成本支出" }.sumOf { SupabaseApi.dbl(it, "amount") }
+    val purchase = purchases.sumOf { SupabaseApi.dbl(it, "total_amount") }
+    val profit = revenue - cost - purchase
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        if (loading) { Text("加载中...", color = Color.Gray); return@Column }
+        Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF1B5E20))) {
+            Column(Modifier.padding(16.dp)) {
+                Text("经营报表", fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f))
+                Spacer(Modifier.height(4.dp))
+                Text("营收 RM %.2f".format(revenue), fontSize = 15.sp, color = Color.White)
+                Text("成本 RM %.2f".format(cost), fontSize = 15.sp, color = Color.White)
+                Text("进货 RM %.2f".format(purchase), fontSize = 15.sp, color = Color.White)
+                Text("毛利 RM %.2f".format(profit), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+
+        SectionTitle("每日营收")
+        val daily = sales.groupBy { SupabaseApi.str(it, "order_date") }
+            .map { (d, list) -> d to list.sumOf { SupabaseApi.dbl(it, "total_amount") } }
+            .sortedByDescending { it.first }
+        if (daily.isEmpty()) Text("暂无数据", color = Color.Gray)
+        daily.forEach { (d, amt) ->
+            InfoRow(d, "RM %.2f".format(amt))
+        }
+    }
+}
+
+@Composable
+private fun ZhixiangLedgerTab(token: String, entityId: String) {
     var inventory by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var payroll by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var sst by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(token) {
-        inventory = SupabaseApi.fetchTable(token, "inventory_summary", "?select=*&business_industry=eq.F&B&limit=20")
-        payroll = SupabaseApi.fetchTable(token, "staff_payroll", "?select=*&business_industry=eq.F&B&limit=20")
+    LaunchedEffect(token, entityId) {
+        if (entityId.isNotEmpty()) {
+            inventory = SupabaseApi.fetchTable(token, "inventory_summary",
+                "?select=*&business_entity_id=eq.$entityId&limit=50")
+            payroll = SupabaseApi.fetchTable(token, "staff_payroll",
+                "?select=*&business_entity_id=eq.$entityId&limit=50")
+        }
         sst = SupabaseApi.fetchTable(token, "sst_return", "?select=*&limit=20")
         loading = false
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Text("炙巷食铺 财务中心", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         if (loading) { Text("加载中...", color = Color.Gray); return@Column }
 
         SectionTitle("进销存（${inventory.size} 条）")
-        inventory.take(10).forEach { r ->
+        inventory.forEach { r ->
             InfoRow(SupabaseApi.str(r, "item_name"), "变动 ${SupabaseApi.str(r, "movement_type")} · 数量 ${SupabaseApi.dbl(r, "quantity")}")
         }
 
         SectionTitle("薪资台账（${payroll.size} 条）")
-        payroll.take(10).forEach { r ->
+        payroll.forEach { r ->
             InfoRow(SupabaseApi.str(r, "staff_name"), "实发 RM %.2f".format(SupabaseApi.dbl(r, "net_salary")))
         }
 
         SectionTitle("报税底稿（${sst.size} 条）")
-        sst.take(10).forEach { r ->
+        sst.forEach { r ->
             InfoRow("SST ${SupabaseApi.str(r, "tax_period")}", "应缴 RM %.2f".format(SupabaseApi.dbl(r, "sst_payable")))
         }
     }

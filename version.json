@@ -1,9 +1,9 @@
 {
-  "versionCode": 15,
-  "versionName": "1.2.2",
-  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.2.2/grouphub.apk",
-  "changelog": "APP 内系统通知（新订单/新付款弹提醒）+ 工资单 HTML 生成",
-  "buildDate": "2026-09-07",
+  "versionCode": 16,
+  "versionName": "1.2.3",
+  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.2.3/grouphub.apk",
+  "changelog": "炙巷食铺财务中心新增：订单管理 / 记账 / 报表统计 / 台账四大板块",
+  "buildDate": "2026-09-08",
   "minSdkVersion": "Android 7.0 (SDK 24)",
   "apkSize": "17 MB"
 }

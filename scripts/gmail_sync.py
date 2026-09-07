@@ -30,6 +30,19 @@ def classify(subject, sender):
     if any(k in s for k in ["supplier", "对账", "statement", "bill", "账单"]): return "供应商对账"
     return "普通沟通"
 
+# 只读这些来源的邮件（发件人白名单）
+WHITELIST_KEYWORDS = [
+    "facebook", "facebookmail", "meta",
+    "google", "accounts.google",
+    "bank", "gxbank", "maybank", "cimb", "public bank", "hong leong", "rhb", "ambank", "alliance bank", "bank negara",
+    "tencent", "qcloud", "cloud.tencent",
+    "tng", "touchngo", "touch 'n go", "touch n go",
+]
+
+def should_sync(sender):
+    s = sender.lower()
+    return any(k in s for k in WHITELIST_KEYWORDS)
+
 def insert_msg(source, msg_time, sender, subject, category, msg_id):
     data = json.dumps([{
         "source": source,
@@ -77,6 +90,8 @@ for mid in ids[-200:]:
     msg = email.message_from_bytes(msg_data[0][1])
     subject = dec(msg["Subject"])
     sender = dec(msg["From"])
+    if not should_sync(sender):
+        continue
     msg_id = msg["Message-ID"] or mid.decode()
     try:
         dt = email.utils.parsedate_to_datetime(msg["Date"])

@@ -1,4 +1,4 @@
-// 同步炙巷食铺数据 → group-hub（营收/成本/进货）
+// 同步炙巷食铺数据 → group-hub（营收/成本/进货/库存/员工薪资）
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -24,13 +24,21 @@ serve(async (_req) => {
     const { data: receipts } = await src.from("receipt_master").select("*").order("trans_datetime", { ascending: false }).limit(1000);
     const { data: expenses } = await src.from("expense_records").select("*").limit(1000);
     const { data: stockIns } = await src.from("stock_in_log").select("*").limit(1000);
+    const { data: items } = await src.from("warehouse_items").select("*").limit(5000);
+    const { data: staff } = await src.from("staff").select("*").limit(500);
+
+    // 物品 id → 名称映射
+    const itemName = new Map<number, string>();
+    for (const it of items ?? []) itemName.set(Number(it.id), String(it.item_name ?? ""));
 
     // 清空旧同步数据（该主体）
     await target.from("sales_invoice_summary").delete().eq("business_entity_id", entityId);
     await target.from("cashflow_business").delete().eq("business_entity_id", entityId);
     await target.from("purchase_invoice_summary").delete().eq("business_entity_id", entityId);
+    await target.from("inventory_summary").delete().eq("business_entity_id", entityId);
+    await target.from("staff_payroll").delete().eq("business_entity_id", entityId);
 
-    let invoiceCount = 0, costCount = 0, purchaseCount = 0;
+    let invoiceCount = 0, costCount = 0, purchaseCount = 0, inventoryCount = 0, payrollCount = 0;
 
     // 营收 → 销项台账
     for (const r of receipts ?? []) {
@@ -68,7 +76,7 @@ serve(async (_req) => {
       costCount++;
     }
 
-    // 进货 → 进项台账
+    // 进货 → 进项台账 + 库存台账（inventory_summary）
     for (const s of stockIns ?? []) {
       await target.from("purchase_invoice_summary").insert({
         business_entity_id: entityId,
@@ -82,6 +90,55 @@ serve(async (_req) => {
         stock_status: "已入库",
       });
       purchaseCount++;
+
+      // 展开进货明细 → 库存台账
+      for (const it of s.in_items ?? []) {
+        const qty = Number(it.qty) || 0;
+        const unit = Number(it.unit_price) || 0;
+        await target.from("inventory_summary").insert({
+          business_entity_id: entityId,
+          account_type: "official",
+          business_industry: "F&B",
+          item_name: itemName.get(Number(it.warehouse_item_id)) ?? String(it.warehouse_item_id ?? ""),
+          movement_type: "入库",
+          quantity: qty,
+          unit_cost: unit,
+          total_amount: round2(qty * unit),
+          external_stock_id: String(s.stock_in_no ?? ""),
+        });
+        inventoryCount++;
+      }
+    }
+
+    // 员工 → 薪资台账（占位薪资，待董事长确认真实金额）
+    const payrollMonth = "2026-08";
+    for (const st of staff ?? []) {
+      const isBoss = String(st.role ?? "").toLowerCase() === "admin";
+      const basic = isBoss ? 4000 : 2000;
+      await target.from("staff_payroll").insert({
+        business_entity_id: entityId,
+        account_type: "official",
+        business_industry: "F&B",
+        payroll_month: payrollMonth,
+        staff_name: String(st.staff_name ?? ""),
+        basic_salary: basic,
+        allowance: 0,
+        overtime: 0,
+        bonus: 0,
+        gross_salary: basic,
+        employee_epf: 0,
+        employer_epf: 0,
+        employee_socso: 0,
+        employer_socso: 0,
+        employee_eis: 0,
+        employer_eis: 0,
+        pcb_mtd: 0,
+        net_salary: basic,
+        total_cost: basic,
+        is_foreigner: false,
+        external_payroll_id: String(st.id ?? ""),
+      });
+      payrollCount++;
     }
 
     // 记录同步状态
@@ -90,11 +147,12 @@ serve(async (_req) => {
       sync_type: "炙巷食铺全量同步",
       last_success_at: new Date().toISOString(),
       status: "成功",
-      row_count: invoiceCount + costCount + purchaseCount,
+      row_count: invoiceCount + costCount + purchaseCount + inventoryCount + payrollCount,
     });
 
     return new Response(JSON.stringify({
       ok: true, invoice: invoiceCount, cost: costCount, purchase: purchaseCount,
+      inventory: inventoryCount, payroll: payrollCount,
     }), { headers: { "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), {
@@ -102,3 +160,7 @@ serve(async (_req) => {
     });
   }
 });
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
