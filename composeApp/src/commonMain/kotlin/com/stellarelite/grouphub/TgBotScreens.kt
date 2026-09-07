@@ -1,5 +1,6 @@
 package com.stellarelite.grouphub
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -43,6 +44,7 @@ fun TgOrderList(token: String) {
     var filter by remember { mutableStateOf("全部") }
     var loading by remember { mutableStateOf(true) }
     var refreshKey by remember { mutableStateOf(0) }
+    var selectedOrder by remember { mutableStateOf<JsonObject?>(null) }
 
     LaunchedEffect(token, refreshKey) {
         rows = SupabaseApi.fetchTable(token, "tg_charter_order", "?select=*&order=created_at.desc&limit=100")
@@ -61,7 +63,7 @@ fun TgOrderList(token: String) {
         if (filtered.isEmpty()) { Text("暂无订单", color = Color.Gray); return@Column }
         LazyColumn(Modifier.fillMaxSize()) {
             items(filtered) { r ->
-                Card(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                Card(Modifier.fillMaxWidth().padding(vertical = 3.dp).clickable { selectedOrder = r }) {
                     Column(Modifier.padding(12.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(SupabaseApi.str(r, "order_no"), fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -77,6 +79,61 @@ fun TgOrderList(token: String) {
             }
         }
     }
+
+    selectedOrder?.let { o ->
+        TgOrderDetailDialog(token, o, onDone = { selectedOrder = null; refreshKey++ }, onDismiss = { selectedOrder = null })
+    }
+}
+
+@Composable
+fun TgOrderDetailDialog(token: String, order: JsonObject, onDone: () -> Unit, onDismiss: () -> Unit) {
+    var payments by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
+    var status by remember { mutableStateOf(SupabaseApi.str(order, "order_status")) }
+    var expanded by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val orderNo = SupabaseApi.str(order, "order_no")
+
+    LaunchedEffect(Unit) {
+        payments = SupabaseApi.fetchTable(token, "tg_order_payment", "?select=*&order_no=eq.$orderNo&order=created_at.desc")
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(orderNo) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("行程：${SupabaseApi.str(order, "trip_details")}", fontSize = 14.sp)
+                Text("状态：${SupabaseApi.str(order, "order_status")}", fontSize = 14.sp)
+                Text("金额 RM %.2f · 佣金 %.2f · 司机 %.2f · 毛利 %.2f".format(
+                    SupabaseApi.dbl(order, "total_order_amount"), SupabaseApi.dbl(order, "agent_commission"),
+                    SupabaseApi.dbl(order, "driver_payable"), SupabaseApi.dbl(order, "our_gross_profit")), fontSize = 14.sp)
+                Text("备注：${SupabaseApi.str(order, "note")}", fontSize = 13.sp, color = Color.Gray)
+                Text("收款/结算记录（${payments.size} 条）", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                payments.take(10).forEach { p ->
+                    Text("${SupabaseApi.str(p, "payment_type")} RM %.2f · %s · %s".format(
+                        SupabaseApi.dbl(p, "amount"), SupabaseApi.str(p, "payment_method"), SupabaseApi.str(p, "payment_status")), fontSize = 12.sp, color = Color.Gray)
+                }
+                Box {
+                    OutlinedButton(onClick = { expanded = true }) { Text("改状态：$status", fontSize = 13.sp) }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        listOf("new", "matched", "ongoing", "completed", "cancelled").forEach { s ->
+                            DropdownMenuItem(text = { Text(s) }, onClick = {
+                                expanded = false
+                                scope.launch {
+                                    SupabaseApi.updateRow(token, "tg_charter_order", "?order_no=eq.$orderNo", """{"order_status":"$s"}""")
+                                    status = s
+                                }
+                            })
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDone) { Text("完成", color = Color(0xFF1B5E20)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("关闭") } }
+    )
 }
 
 @Composable

@@ -87,12 +87,23 @@ serve(async (req) => {
       });
       await supabase.from("tg_charter_order").update({ order_status: "completed", updated_at: new Date().toISOString() }).eq("order_no", orderNo);
       reply = `💸 已登记司机结算：${orderNo} RM${amount}`;
+      await notifyOrderParties(supabase, botToken, orderNo, "completed");
+    } else if (text.startsWith("/assign")) {
+      const parts = text.replace("/assign", "").trim().split("|");
+      const orderNo = (parts[0] || "").trim();
+      const driverId = (parts[1] || "").trim();
+      const { error } = await supabase.from("tg_charter_order").update({
+        tg_driver_id: driverId, order_status: "matched", updated_at: new Date().toISOString()
+      }).eq("order_no", orderNo);
+      reply = error ? "指派失败：" + error.message : `✅ 订单 ${orderNo} 已指派司机 ${driverId}`;
+      if (!error) await notifyOrderParties(supabase, botToken, orderNo, "matched");
     } else if (text.startsWith("/status")) {
       const parts = text.replace("/status", "").trim().split("|");
       const orderNo = (parts[0] || "").trim();
       const st = (parts[1] || "ongoing").trim();
       const { error } = await supabase.from("tg_charter_order").update({ order_status: st, updated_at: new Date().toISOString() }).eq("order_no", orderNo);
       reply = error ? "改状态失败：" + error.message : `✅ 订单 ${orderNo} 状态已改为 ${st}`;
+      if (!error) await notifyOrderParties(supabase, botToken, orderNo, st);
     } else {
       reply = "请用菜单命令操作，发 /help 查看全部命令";
     }
@@ -128,4 +139,22 @@ function genOrderNo(): string {
   const ymd = d.toISOString().slice(0, 10).replace(/-/g, "");
   const rand = Math.floor(1000 + Math.random() * 9000);
   return `TG-${ymd}-${rand}`;
+}
+
+// 订单状态变更时推送给对应角色（客户/司机）
+async function notifyOrderParties(supabase: any, botToken: string | undefined, orderNo: string, status: string) {
+  if (!botToken) return;
+  const { data } = await supabase.from("tg_charter_order")
+    .select("tg_customer_id, tg_driver_id, order_no").eq("order_no", orderNo).single();
+  if (!data) return;
+  const targets = [data.tg_customer_id, data.tg_driver_id].filter(Boolean);
+  for (const chatId of targets) {
+    try {
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: chatId, text: `🔔 订单 ${orderNo} 状态更新为 ${status}` }),
+      });
+    } catch (_) { /* 忽略单条推送失败 */ }
+  }
 }

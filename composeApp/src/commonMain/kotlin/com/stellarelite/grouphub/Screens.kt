@@ -61,21 +61,30 @@ fun ZhixiangFinanceScreen(token: String) {
 // ============ 3. 星域臻旅 财务中心（双账本专区） ============
 @Composable
 fun XyzlFinanceScreen(token: String) {
+    var privateMode by remember { mutableStateOf(true) }
     var tab by remember { mutableStateOf(0) }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text("星域臻旅 财务中心", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-        TabRow(selectedTabIndex = tab) {
-            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("报税商贸账", fontSize = 13.sp) })
-            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("真实包车账", fontSize = 13.sp) })
-            Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("TG Bot 订单", fontSize = 13.sp) })
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("账本视图：", fontSize = 13.sp, color = Color.Gray)
+            FilterChip(selected = !privateMode, onClick = { privateMode = false }, label = { Text("官方报税", fontSize = 12.sp) })
+            FilterChip(selected = privateMode, onClick = { privateMode = true }, label = { Text("真实经营", fontSize = 12.sp) })
         }
         Spacer(Modifier.height(8.dp))
-        when (tab) {
-            0 -> XyzlCashflowTab(token, "official")
-            1 -> XyzlCashflowTab(token, "private")
-            2 -> TgOrderScreen(token)
+        if (privateMode) {
+            TabRow(selectedTabIndex = tab) {
+                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("真实包车账", fontSize = 13.sp) })
+                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("TG Bot 订单", fontSize = 13.sp) })
+            }
+            Spacer(Modifier.height(8.dp))
+            when (tab) {
+                0 -> XyzlCashflowTab(token, "private")
+                1 -> TgOrderScreen(token)
+            }
+        } else {
+            XyzlCashflowTab(token, "official")
         }
     }
 }
