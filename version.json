@@ -1,8 +1,8 @@
 {
-  "versionCode": 6,
-  "versionName": "1.0.5",
-  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.0.5/grouphub.apk",
-  "changelog": "加入自动更新系统（raw 直链检测 + Release 下载 + 自动安装）",
+  "versionCode": 7,
+  "versionName": "1.0.6",
+  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.0.6/grouphub.apk",
+  "changelog": "补齐原生授权权限（通知/存储/相机/录音/定位/联系人）+ 运行时通知权限请求",
   "buildDate": "2026-09-07",
   "minSdkVersion": "Android 7.0 (SDK 24)",
   "apkSize": "17 MB"
