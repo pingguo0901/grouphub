@@ -48,6 +48,15 @@ serve(async (req) => {
       upsert: true,
     });
 
+    // 生成 HTML 工资单（中文正常，可打印成 PDF）
+    const htmlRows = rows.map((r) =>
+      `<tr><td>${r.staff_name}</td><td>${r.basic_salary}</td><td>${r.gross_salary}</td><td>${r.employee_epf}</td><td>${r.employer_epf}</td><td>${r.employee_socso}</td><td>${r.employer_socso}</td><td>${r.employee_eis}</td><td>${r.employer_eis}</td><td>${r.pcb_mtd}</td><td>${r.net_salary}</td><td>${r.total_cost}</td></tr>`
+    ).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>工资单 ${month}</title></head><body><h1>工资单 ${month}</h1><table border="1" cellpadding="6"><tr><th>员工</th><th>底薪</th><th>毛工资</th><th>员工EPF</th><th>雇主EPF</th><th>员工SOCSO</th><th>雇主SOCSO</th><th>员工EIS</th><th>雇主EIS</th><th>PCB</th><th>实发</th><th>人力总成本</th></tr>${htmlRows}</table><p>汇总：雇主EPF RM${totalEpf} · 雇主SOCSO RM${totalSocso} · 雇主EIS RM${totalEis} · PCB RM${totalPcb} · 人力总成本 RM${totalCost} · HRDF RM${Math.round(hrdf * 100) / 100}</p></body></html>`;
+    await supabase.storage.from("biz_doc_archive").upload(`payslips/payslip_${month}.html`, html, {
+      contentType: "text/html", upsert: true,
+    });
+
     await supabase.from("audit_log").insert({
       action_type: "生成工资单",
       related_table_id: path,

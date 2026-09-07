@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.Image
 import org.jetbrains.compose.resources.painterResource
 import grouphub.composeapp.generated.resources.Res
@@ -143,6 +144,33 @@ fun LoginScreen(onLoggedIn: (String) -> Unit) {
 fun MainScaffold(token: String) {
     var current by remember { mutableStateOf(0) }
     var sub by remember { mutableStateOf<String?>(null) }
+    var lastOrder by remember { mutableStateOf("") }
+    var lastPayment by remember { mutableStateOf("") }
+
+    // 轮询：新包车订单 / 新付款登记 → 系统通知
+    LaunchedEffect(token) {
+        while (true) {
+            delay(60000)
+            try {
+                val latestOrder = SupabaseApi.fetchTable(token, "tg_charter_order", "?select=order_no&order=created_at.desc&limit=1")
+                if (latestOrder.isNotEmpty()) {
+                    val no = SupabaseApi.str(latestOrder[0], "order_no")
+                    if (no.isNotEmpty() && no != lastOrder && lastOrder.isNotEmpty()) {
+                        showAppNotification("新包车订单", "收到新订单 $no")
+                    }
+                    if (no.isNotEmpty()) lastOrder = no
+                }
+                val latestPay = SupabaseApi.fetchTable(token, "tg_order_payment", "?select=id&order=created_at.desc&limit=1")
+                if (latestPay.isNotEmpty()) {
+                    val pid = SupabaseApi.str(latestPay[0], "id")
+                    if (pid.isNotEmpty() && pid != lastPayment && lastPayment.isNotEmpty()) {
+                        showAppNotification("新付款登记", "收到一笔新付款登记")
+                    }
+                    if (pid.isNotEmpty()) lastPayment = pid
+                }
+            } catch (_: Exception) { }
+        }
+    }
 
     if (sub != null) {
         SubScreen(sub!!, token, onBack = { sub = null })

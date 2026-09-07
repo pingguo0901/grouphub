@@ -1,8 +1,8 @@
 {
-  "versionCode": 14,
-  "versionName": "1.2.1",
-  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.2.1/grouphub.apk",
-  "changelog": "Telegram Bot 正式上线（Webhook）+ 指派司机 + 状态通知推送 + 订单详情页 + 报税视图隐藏联动",
+  "versionCode": 15,
+  "versionName": "1.2.2",
+  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.2.2/grouphub.apk",
+  "changelog": "APP 内系统通知（新订单/新付款弹提醒）+ 工资单 HTML 生成",
   "buildDate": "2026-09-07",
   "minSdkVersion": "Android 7.0 (SDK 24)",
   "apkSize": "17 MB"
