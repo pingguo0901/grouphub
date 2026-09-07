@@ -37,6 +37,8 @@ serve(async (req) => {
     const totalEis = rows.reduce((s, r) => s + Number(r.employer_eis || 0), 0);
     const totalPcb = rows.reduce((s, r) => s + Number(r.pcb_mtd || 0), 0);
     const totalCost = rows.reduce((s, r) => s + Number(r.total_cost || 0), 0);
+    // HRDF：本地员工 >= 10 人缴 1% 工资总额，<10 人豁免
+    const hrdf = rows.length >= 10 ? totalCost * 0.01 : 0;
 
     // 归档到 biz_doc_archive
     const month = payroll_month || new Date().toISOString().slice(0, 7);
@@ -58,7 +60,7 @@ serve(async (req) => {
         path,
         rows: rows.length,
         total_epf: totalEpf, total_socso: totalSocso, total_eis: totalEis,
-        total_pcb: totalPcb, total_cost: totalCost,
+        total_pcb: totalPcb, total_cost: totalCost, hrdf: Math.round(hrdf * 100) / 100,
       }),
       { headers: { "Content-Type": "application/json" } },
     );

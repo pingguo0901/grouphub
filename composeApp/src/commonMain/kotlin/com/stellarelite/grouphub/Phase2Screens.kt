@@ -21,8 +21,10 @@ import kotlinx.serialization.json.JsonObject
 fun MessageScreen(token: String) {
     var rows by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
+    var bindTarget by remember { mutableStateOf<String?>(null) }
+    var refreshKey by remember { mutableStateOf(0) }
 
-    LaunchedEffect(token) {
+    LaunchedEffect(token, refreshKey) {
         rows = SupabaseApi.fetchTable(token, "phone_msg_sync", "?select=*&order=msg_time.desc&limit=100")
         loading = false
     }
@@ -38,13 +40,57 @@ fun MessageScreen(token: String) {
             items(rows) { r ->
                 val src = SupabaseApi.str(r, "source")
                 val cat = SupabaseApi.str(r, "ai_category")
-                InfoRow(
-                    "[$src] ${SupabaseApi.str(r, "sender")}",
-                    "${SupabaseApi.str(r, "summary")}" + if (cat.isNotEmpty()) " · 分类：$cat" else ""
-                )
+                val linked = SupabaseApi.str(r, "is_linked") == "true"
+                Card(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                    Column(Modifier.padding(12.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("[$src] ${SupabaseApi.str(r, "sender")}", fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                            Text(if (linked) "已绑定" else "未绑定", fontSize = 12.sp, color = if (linked) Color(0xFF1B5E20) else Color.Gray)
+                        }
+                        Text(SupabaseApi.str(r, "summary"), fontSize = 13.sp, color = Color.Gray)
+                        if (cat.isNotEmpty()) Text("分类：$cat", fontSize = 12.sp, color = Color(0xFFF9A825))
+                        if (!linked) {
+                            TextButton(onClick = { bindTarget = SupabaseApi.str(r, "id") }) { Text("绑定单据") }
+                        }
+                    }
+                }
             }
         }
     }
+
+    bindTarget?.let { mid ->
+        BindDialog(token, mid, onDone = { bindTarget = null; refreshKey++ }, onDismiss = { bindTarget = null })
+    }
+}
+
+@Composable
+fun BindDialog(token: String, msgId: String, onDone: () -> Unit, onDismiss: () -> Unit) {
+    var docId by remember { mutableStateOf("") }
+    var saving by remember { mutableStateOf(false) }
+    var msg by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("绑定业务单据") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(docId, { docId = it }, label = { Text("关联单据 ID（销项/进货单号）") }, singleLine = true)
+                msg?.let { Text(it, color = Color.Red, fontSize = 12.sp) }
+            }
+        },
+        confirmButton = {
+            Button(enabled = !saving, onClick = {
+                scope.launch {
+                    saving = true
+                    val body = """{"is_linked":true,"linked_doc_id":"$docId"}"""
+                    SupabaseApi.updateRow(token, "phone_msg_sync", "?id=eq.$msgId", body).onSuccess { onDone() }.onFailure { msg = it.message }
+                    saving = false
+                }
+            }) { Text(if (saving) "绑定中..." else "确认绑定") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+    )
 }
 
 // ============ 二期：AI 经营助手 ============

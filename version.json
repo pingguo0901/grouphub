@@ -1,8 +1,8 @@
 {
-  "versionCode": 11,
-  "versionName": "1.1.3",
-  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.1.3/grouphub.apk",
-  "changelog": "档案上传 + 工资单 CSV 导出归档",
+  "versionCode": 12,
+  "versionName": "1.1.4",
+  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.1.4/grouphub.apk",
+  "changelog": "CP500 分期缴税 + HRDF 豁免 + 首页合规提醒 + 消息绑定单据 + Telegram Bot 框架",
   "buildDate": "2026-09-07",
   "minSdkVersion": "Android 7.0 (SDK 24)",
   "apkSize": "17 MB"

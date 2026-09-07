@@ -54,13 +54,21 @@ serve(async (req) => {
       else xyzlProfit = profit;
     }
 
-    // 写入 FormB 合并底稿
+    // 写入 FormB 合并底稿（含 CP500 分期计算）
     const totalProfit = zhixiangProfit + xyzlProfit;
+    const annualTax = calcCorporateTax(totalProfit);
+    const cp500 = {
+      annual_estimated_tax: round2(annualTax),
+      installments: 6,
+      per_installment: round2(annualTax / 6),
+      schedule: ["31/01", "31/03", "31/05", "31/07", "30/09", "30/11"],
+    };
     await supabase.from("formb_tax").insert({
       tax_year: tax_year,
       zhixiang_profit: zhixiangProfit,
       xyzl_profit: xyzlProfit,
       total_taxable_profit: totalProfit,
+      cp500_records: cp500,
       draft_generated_at: new Date().toISOString(),
       filing_status: "草稿",
     });
@@ -100,4 +108,11 @@ function sum(arr: any[], key: string): number {
 }
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+// 马来西亚中小企业公司所得税（首 15 万 15%、15-60 万 17%、>60 万 24%）
+function calcCorporateTax(profit: number): number {
+  if (profit <= 0) return 0;
+  if (profit <= 150000) return profit * 0.15;
+  if (profit <= 600000) return 150000 * 0.15 + (profit - 150000) * 0.17;
+  return 150000 * 0.15 + 450000 * 0.17 + (profit - 600000) * 0.24;
 }

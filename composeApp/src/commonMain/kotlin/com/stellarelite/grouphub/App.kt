@@ -22,6 +22,7 @@ import androidx.compose.foundation.Image
 import org.jetbrains.compose.resources.painterResource
 import grouphub.composeapp.generated.resources.Res
 import grouphub.composeapp.generated.resources.app_icon
+import kotlinx.serialization.json.JsonObject
 
 // ============ 应用入口（登录态管理） ============
 @Composable
@@ -210,8 +211,10 @@ fun DashboardScreen(token: String, onNavigate: (String) -> Unit = {}) {
     var showOwnerDrawing by remember { mutableStateOf(false) }
     var showCashflow by remember { mutableStateOf(false) }
     var entryMenu by remember { mutableStateOf(false) }
+    var reminders by remember { mutableStateOf<List<JsonObject>>(emptyList()) }
 
     LaunchedEffect(token, refreshKey) {
+        reminders = SupabaseApi.fetchTable(token, "compliance_reminder", "?select=*&status=eq.待处理&order=due_date.asc&limit=5")
         val ents = SupabaseApi.fetchEntities(token)
         entities = ents
         val rev = mutableMapOf<String, Double>()
@@ -281,6 +284,24 @@ fun DashboardScreen(token: String, onNavigate: (String) -> Unit = {}) {
                     revenue = rev, cost = cst, profit = profit
                 )
                 Spacer(Modifier.height(8.dp))
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        if (reminders.isNotEmpty()) {
+            Text("到期合规提醒", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            reminders.forEach { r ->
+                Card(Modifier.fillMaxWidth().padding(vertical = 3.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1))) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Warning, contentDescription = null, tint = Color(0xFFF9A825))
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(SupabaseApi.str(r, "reminder_type"), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                            Text("到期 ${SupabaseApi.str(r, "due_date")}", fontSize = 12.sp, color = Color.Gray)
+                        }
+                    }
+                }
             }
         }
 
