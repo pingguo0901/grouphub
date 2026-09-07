@@ -1,8 +1,8 @@
 {
-  "versionCode": 8,
-  "versionName": "1.1.0",
-  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.1.0/grouphub.apk",
-  "changelog": "第二期 V1.1：消息归集中心 + AI 经营助手（DeepSeek）+ Facebook 营销中控",
+  "versionCode": 9,
+  "versionName": "1.1.1",
+  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.1.1/grouphub.apk",
+  "changelog": "AI 助手深化（读经营数据）+ WhatsApp/WeChat 通知采集（手机通知监听）",
   "buildDate": "2026-09-07",
   "minSdkVersion": "Android 7.0 (SDK 24)",
   "apkSize": "17 MB"
