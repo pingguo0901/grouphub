@@ -1,8 +1,8 @@
 {
-  "versionCode": 10,
-  "versionName": "1.1.2",
-  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.1.2/grouphub.apk",
-  "changelog": "审批中心 + 合规日历自动生成 + 证照到期扫描",
+  "versionCode": 11,
+  "versionName": "1.1.3",
+  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.1.3/grouphub.apk",
+  "changelog": "档案上传 + 工资单 CSV 导出归档",
   "buildDate": "2026-09-07",
   "minSdkVersion": "Android 7.0 (SDK 24)",
   "apkSize": "17 MB"

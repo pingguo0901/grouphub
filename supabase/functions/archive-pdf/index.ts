@@ -4,13 +4,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 serve(async (req) => {
   try {
-    const { bucket, path, content, content_type } = await req.json();
+    const { bucket, path, content, text, content_type } = await req.json();
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const bytes = Uint8Array.from(atob(content), (c) => c.charCodeAt(0));
+    let bytes: Uint8Array;
+    if (content) {
+      bytes = Uint8Array.from(atob(content), (c) => c.charCodeAt(0));
+    } else if (text) {
+      bytes = new TextEncoder().encode(text);
+    } else {
+      throw new Error("缺少内容");
+    }
 
     const { error } = await supabase.storage.from(bucket).upload(path, bytes, {
       contentType: content_type || "application/pdf",

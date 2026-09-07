@@ -96,6 +96,8 @@ fun PayrollScreen(token: String) {
     var loading by remember { mutableStateOf(true) }
     var showDialog by remember { mutableStateOf(false) }
     var refreshKey by remember { mutableStateOf(0) }
+    var exportMsg by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(token, refreshKey) {
         rows = SupabaseApi.fetchTable(token, "staff_payroll", "?select=*&limit=50")
@@ -131,6 +133,15 @@ fun PayrollScreen(token: String) {
                 Text("人力总成本 RM %.2f".format(totalCost), fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
+        Spacer(Modifier.height(12.dp))
+
+        Button(onClick = {
+            scope.launch {
+                exportMsg = SupabaseApi.callFunction("gen-payslip", token, "{}")
+            }
+        }) { Text("导出工资单（CSV 归档）") }
+        exportMsg?.let { Text(it, fontSize = 12.sp, color = Color.Gray) }
+
         Spacer(Modifier.height(12.dp))
 
         Text("员工薪资明细（${rows.size} 条）", fontSize = 15.sp, fontWeight = FontWeight.Bold)
@@ -246,8 +257,10 @@ fun ArchiveScreen(token: String) {
     var phoneFiles by remember { mutableStateOf<List<String>>(emptyList()) }
     var aiFiles by remember { mutableStateOf<List<String>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
+    var showUpload by remember { mutableStateOf(false) }
+    var refreshKey by remember { mutableStateOf(0) }
 
-    LaunchedEffect(token) {
+    LaunchedEffect(token, refreshKey) {
         bizFiles = SupabaseApi.listFiles(token, "biz_doc_archive")
         phoneFiles = SupabaseApi.listFiles(token, "phone_sync_attachment")
         aiFiles = SupabaseApi.listFiles(token, "ai_fb_draft_export")
@@ -255,7 +268,14 @@ fun ArchiveScreen(token: String) {
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Text("官方档案库（7 年存档）", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("官方档案库（7 年存档）", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            FilledTonalButton(onClick = { showUpload = true }) {
+                Icon(Icons.Filled.Upload, contentDescription = "上传")
+                Spacer(Modifier.width(4.dp))
+                Text("上传")
+            }
+        }
         Spacer(Modifier.height(12.dp))
         if (loading) { Text("加载中...", color = Color.Gray); return@Column }
 
@@ -270,6 +290,10 @@ fun ArchiveScreen(token: String) {
         SectionTitle("ai_fb_draft_export · AI/FB（${aiFiles.size} 个）")
         if (aiFiles.isEmpty()) Text("暂无文件", color = Color.Gray)
         aiFiles.forEach { f -> InfoRow(f, "AI/FB 文件") }
+    }
+
+    if (showUpload) {
+        ArchiveUploadDialog(token, onDone = { showUpload = false; refreshKey = refreshKey + 1 }, onDismiss = { showUpload = false })
     }
 }
 
@@ -492,6 +516,50 @@ fun PayrollDialog(token: String, entities: List<BusinessEntity>, onDone: () -> U
                     saving = false
                 }
             }) { Text(if (saving) "保存中..." else "保存") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
+    )
+}
+
+@Composable
+fun ArchiveUploadDialog(token: String, onDone: () -> Unit, onDismiss: () -> Unit) {
+    var bucket by remember { mutableStateOf("biz_doc_archive") }
+    var filename by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
+    var saving by remember { mutableStateOf(false) }
+    var msg by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("上传凭证") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        "biz_doc_archive" to "报税文档",
+                        "phone_sync_attachment" to "私人凭证",
+                        "ai_fb_draft_export" to "AI/FB"
+                    ).forEach { (b, label) ->
+                        FilterChip(selected = bucket == b, onClick = { bucket = b }, label = { Text(label, fontSize = 12.sp) })
+                    }
+                }
+                OutlinedTextField(filename, { filename = it }, label = { Text("文件名（如 receipt_001.txt）") }, singleLine = true)
+                OutlinedTextField(content, { content = it }, label = { Text("内容（文本）") }, minLines = 3)
+                msg?.let { Text(it, color = Color.Red, fontSize = 12.sp) }
+            }
+        },
+        confirmButton = {
+            Button(enabled = !saving, onClick = {
+                scope.launch {
+                    saving = true
+                    val esc = content.replace("\\", "\\\\").replace("\"", "\\\"")
+                    val body = """{"bucket":"$bucket","path":"$filename","text":"$esc"}"""
+                    SupabaseApi.callFunction("archive-pdf", token, body)
+                    onDone()
+                    saving = false
+                }
+            }) { Text(if (saving) "上传中..." else "上传") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } }
     )
