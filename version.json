@@ -1,8 +1,8 @@
 {
-  "versionCode": 1,
-  "versionName": "1.0.0",
-  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.0.0/grouphub.apk",
-  "changelog": "中心枢纽 V1.0 首个版本：双账本驾驶舱 + 8 页面 + 马来西亚税务合规（EPF/SOCSO/EIS/PCB/SST）",
+  "versionCode": 2,
+  "versionName": "1.0.1",
+  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.0.1/grouphub.apk",
+  "changelog": "更新 App 图标",
   "buildDate": "2026-09-07",
   "minSdkVersion": "Android 7.0 (SDK 24)",
   "apkSize": "17 MB"
