@@ -98,6 +98,41 @@ object SupabaseApi {
         return rows.sumOf { it.amountMyr }
     }
 
+    // 通用写入（插入一行）
+    suspend fun insertRow(token: String, table: String, body: String): Result<String> {
+        return try {
+            val resp = client.post("${Config.SUPABASE_URL}/rest/v1/$table") {
+                header("apikey", Config.SUPABASE_ANON_KEY)
+                header("Authorization", "Bearer $token")
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+            if (resp.status.value in 200..299) Result.success(resp.bodyAsText())
+            else Result.failure(Exception("写入失败(${resp.status.value})"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // 列出 Storage bucket 文件
+    suspend fun listFiles(token: String, bucket: String): List<String> {
+        return try {
+            val resp = client.post("${Config.SUPABASE_URL}/storage/v1/object/list/$bucket") {
+                header("apikey", Config.SUPABASE_ANON_KEY)
+                header("Authorization", "Bearer $token")
+                contentType(ContentType.Application.Json)
+                setBody("""{"prefix":"","limit":100,"offset":0}""")
+            }
+            val text = resp.bodyAsText()
+            if (text.isBlank()) emptyList()
+            else json.parseToJsonElement(text).jsonArray.mapNotNull {
+                (it as? JsonObject)?.get("name")?.let { n -> (n as? JsonPrimitive)?.content }
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
     // 便捷：解析 JsonObject 的字符串/数字字段
     fun str(o: JsonObject, key: String): String = (o[key] as? JsonPrimitive)?.content ?: ""
     fun dbl(o: JsonObject, key: String): Double = (o[key] as? JsonPrimitive)?.content?.toDoubleOrNull() ?: 0.0

@@ -60,12 +60,21 @@ android {
     namespace = "com.stellarelite.grouphub"
     compileSdk = 35
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("grouphub.keystore")
+            storePassword = "grouphub123456"
+            keyAlias = "grouphub"
+            keyPassword = "grouphub123456"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.stellarelite.grouphub"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
     }
 
     packaging {
@@ -77,9 +86,11 @@ android {
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
         getByName("debug") {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

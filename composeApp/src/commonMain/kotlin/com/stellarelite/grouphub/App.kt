@@ -147,8 +147,12 @@ fun DashboardScreen(token: String) {
     var cost by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
     var drawing by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
     var loading by remember { mutableStateOf(true) }
+    var refreshKey by remember { mutableStateOf(0) }
+    var showOwnerDrawing by remember { mutableStateOf(false) }
+    var showCashflow by remember { mutableStateOf(false) }
+    var entryMenu by remember { mutableStateOf(false) }
 
-    LaunchedEffect(token) {
+    LaunchedEffect(token, refreshKey) {
         val ents = SupabaseApi.fetchEntities(token)
         entities = ents
         val rev = mutableMapOf<String, Double>()
@@ -166,7 +170,20 @@ fun DashboardScreen(token: String) {
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Text("星域集团 · 总驾驶舱", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("星域集团 · 总驾驶舱", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Box {
+                FilledTonalButton(onClick = { entryMenu = true }) {
+                    Icon(Icons.Filled.Add, contentDescription = "录入")
+                    Spacer(Modifier.width(4.dp))
+                    Text("录入")
+                }
+                DropdownMenu(expanded = entryMenu, onDismissRequest = { entryMenu = false }) {
+                    DropdownMenuItem(text = { Text("老板提款") }, onClick = { entryMenu = false; showOwnerDrawing = true })
+                    DropdownMenuItem(text = { Text("手动收支") }, onClick = { entryMenu = false; showCashflow = true })
+                }
+            }
+        }
         Spacer(Modifier.height(12.dp))
 
         // 双账本切换
@@ -216,6 +233,13 @@ fun DashboardScreen(token: String) {
             QuickEntry("官方档案", Icons.Filled.Folder, Modifier.weight(1f))
             QuickEntry("数据同步", Icons.Filled.Sync, Modifier.weight(1f))
         }
+    }
+
+    if (showOwnerDrawing) {
+        OwnerDrawingDialog(token, entities, onDone = { showOwnerDrawing = false; refreshKey = refreshKey + 1 }, onDismiss = { showOwnerDrawing = false })
+    }
+    if (showCashflow) {
+        CashflowDialog(token, entities, onDone = { showCashflow = false; refreshKey = refreshKey + 1 }, onDismiss = { showCashflow = false })
     }
 }
 

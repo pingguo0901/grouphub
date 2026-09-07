@@ -1,8 +1,8 @@
 {
-  "versionCode": 4,
-  "versionName": "1.0.3",
-  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.0.3/grouphub.apk",
-  "changelog": "修复登录密码传递 bug（密码写死导致 invalid login credentials）",
+  "versionCode": 5,
+  "versionName": "1.0.4",
+  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.0.4/grouphub.apk",
+  "changelog": "补齐：录入功能（老板提款/手动收支）、薪资录入自动计算、档案库文件列表、FormE 预览、正式签名",
   "buildDate": "2026-09-07",
   "minSdkVersion": "Android 7.0 (SDK 24)",
   "apkSize": "17 MB"
