@@ -18,6 +18,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.Image
+import org.jetbrains.compose.resources.painterResource
+import grouphub.composeapp.generated.resources.Res
+import grouphub.composeapp.generated.resources.app_icon
 
 // ============ 应用入口（登录态管理） ============
 @Composable
@@ -49,6 +53,12 @@ fun LoginScreen(onLoggedIn: (String) -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Image(
+            painter = painterResource(Res.drawable.app_icon),
+            contentDescription = "App Icon",
+            modifier = Modifier.size(96.dp)
+        )
+        Spacer(Modifier.height(16.dp))
         Text("星域集团 · 中心枢纽", fontSize = 22.sp, fontWeight = FontWeight.Bold)
         Text("董事长全域驾驶舱", fontSize = 14.sp, color = Color.Gray)
         Spacer(Modifier.height(32.dp))

@@ -1,8 +1,8 @@
 {
-  "versionCode": 2,
-  "versionName": "1.0.1",
-  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.0.1/grouphub.apk",
-  "changelog": "更新 App 图标",
+  "versionCode": 3,
+  "versionName": "1.0.2",
+  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.0.2/grouphub.apk",
+  "changelog": "登录界面增加 App 图标",
   "buildDate": "2026-09-07",
   "minSdkVersion": "Android 7.0 (SDK 24)",
   "apkSize": "17 MB"
