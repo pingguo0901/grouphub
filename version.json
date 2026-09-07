@@ -1,8 +1,8 @@
 {
-  "versionCode": 9,
-  "versionName": "1.1.1",
-  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.1.1/grouphub.apk",
-  "changelog": "AI 助手深化（读经营数据）+ WhatsApp/WeChat 通知采集（手机通知监听）",
+  "versionCode": 10,
+  "versionName": "1.1.2",
+  "apkUrl": "https://github.com/pingguo0901/grouphub/releases/download/v1.1.2/grouphub.apk",
+  "changelog": "审批中心 + 合规日历自动生成 + 证照到期扫描",
   "buildDate": "2026-09-07",
   "minSdkVersion": "Android 7.0 (SDK 24)",
   "apkSize": "17 MB"

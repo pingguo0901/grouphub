@@ -133,6 +133,22 @@ object SupabaseApi {
         }
     }
 
+    // 通用更新（PATCH）
+    suspend fun updateRow(token: String, table: String, query: String, body: String): Result<String> {
+        return try {
+            val resp = client.patch("${Config.SUPABASE_URL}/rest/v1/$table$query") {
+                header("apikey", Config.SUPABASE_ANON_KEY)
+                header("Authorization", "Bearer $token")
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+            if (resp.status.value in 200..299) Result.success(resp.bodyAsText())
+            else Result.failure(Exception("更新失败(${resp.status.value})"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     // 便捷：解析 JsonObject 的字符串/数字字段
     fun str(o: JsonObject, key: String): String = (o[key] as? JsonPrimitive)?.content ?: ""
     fun dbl(o: JsonObject, key: String): Double = (o[key] as? JsonPrimitive)?.content?.toDoubleOrNull() ?: 0.0

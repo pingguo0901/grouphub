@@ -189,6 +189,7 @@ fun SubScreen(name: String, token: String, onBack: () -> Unit) {
             "消息归集" -> MessageScreen(token)
             "AI 助手" -> AiChatScreen(token)
             "FB 中控" -> FbScreen(token)
+            "审批" -> ApprovalScreen(token)
             else -> {}
         }
     }
@@ -296,6 +297,12 @@ fun DashboardScreen(token: String, onNavigate: (String) -> Unit = {}) {
             QuickEntry("消息归集", Icons.Filled.Email, Modifier.weight(1f)) { onNavigate("消息归集") }
             QuickEntry("AI 助手", Icons.Filled.SmartToy, Modifier.weight(1f)) { onNavigate("AI 助手") }
             QuickEntry("FB 中控", Icons.Filled.ThumbUp, Modifier.weight(1f)) { onNavigate("FB 中控") }
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            QuickEntry("审批", Icons.Filled.FactCheck, Modifier.weight(1f)) { onNavigate("审批") }
+            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
         }
     }
 
